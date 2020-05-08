@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import os
 import sys
+import re
 
 class TooManyArgumentsException(Exception):
     pass
@@ -26,9 +27,9 @@ def confirm_action(response):
         response = input("Please type y or n\n")
         return confirm_action(response)
 
-def create_document(filename, path, overwrite):
+def create_document(title, path, overwrite):
     content = f"""
-# {filename} <!-- omit in TOC -->
+# {title} <!-- omit in TOC -->
 
 ## Contents <!-- omit in TOC -->
 - [Section 1](#section-1)
@@ -54,14 +55,12 @@ def create_document(filename, path, overwrite):
             raise FileExistsError
 
 def read_arguments(argv):
-    print(argv)
     if len(argv) == 1:
         return "", ""
     elif len(argv) == 2:
         if argv[1][0] == "-":
             return argv[1], ""
         else:
-            print("filename:", argv[1])
             return "", argv[1]
     elif len(argv) == 3:
         if argv[1][0] == "-":
@@ -73,12 +72,13 @@ def read_arguments(argv):
 
 
 def get_path(filename):
+
     FULL_PATHS = ["/", "~", "."]
     if filename[0] in FULL_PATHS :
         path = filename
     else:
         current_directory = os.getcwd()
-        path = f"{current_directory}/{filename}.md"
+        path = f"{current_directory}/{filename}"
     
     return path
 
@@ -99,6 +99,21 @@ def evaluate_options(options):
         evaluated_options['open'] = True
     
     return evaluated_options
+
+def evaluate_filename(filename):
+    if filename == "":
+        filename = input("Please enter a filename\n")
+
+    MARKDOWN_EXTENSION = re.compile("(\.markdown|\.mdown|\.mkdn|\.mkd|\.md)$")
+    extension_match = MARKDOWN_EXTENSION.search(filename)
+    if extension_match == None:
+        title = filename.split("/")[len(filename.split("/"))-1]
+        filename = f"{filename}.md"
+    else:
+        title = filename.split("/")[len(filename.split("/"))-1]
+        title = title[:extension_match.start()]
+
+    return filename, title
 
 def open_document(path):
     
@@ -125,20 +140,19 @@ if __name__ == "__main__":
         options, filename = read_arguments(sys.argv)
         evaluated_options = evaluate_options(options)
         document_created = False
-
-        if filename == "":
-            filename = input("Please enter a filename\n")
+        
+        filename, title = evaluate_filename(filename)
 
         path = get_path(filename)
         try:
-            document_created = create_document(filename, path, evaluated_options['overwrite'])
+            document_created = create_document(title, path, evaluated_options['overwrite'])
 
         except FileExistsError:
             if evaluated_options['overwrite'] == None:
                 overwrite = input(f"The file you are trying to create already exists. Do you want to overwrite the file {path}? y|n\n")
                 evaluated_options['overwrite'] = confirm_action(overwrite)
                 try:
-                    document_created = create_document(filename, path, evaluated_options['overwrite'])
+                    document_created = create_document(title, path, evaluated_options['overwrite'])
                 except FileExistsError:
                     print(f"File {path} exists and will not be overwritten.")
                     sys.exit()
