@@ -163,39 +163,40 @@ if __name__ == "__main__":
         filename, title = evaluate_filename(filename)
 
         path = get_path(filename)
-        try:
-            document_created = create_document(title, path, evaluated_options['overwrite'])
+        document_created = create_document(title, path, evaluated_options['overwrite'])
 
-        except FileExistsError:
-            if evaluated_options['overwrite'] == None:
-                overwrite = input(f"The file you are trying to create already exists. Do you want to overwrite the file {path}? y|n\n")
-                evaluated_options['overwrite'] = confirm_action(overwrite)
-                try:
-                    document_created = create_document(title, path, evaluated_options['overwrite'])
-                except FileExistsError:
-                    print(f"File {path} exists and will not be overwritten.")
-                    sys.exit()
-            else:
+
+    except FileExistsError:
+        if evaluated_options['overwrite'] == None:
+            overwrite = input(f"The file you are trying to create already exists. Do you want to overwrite the file {path}? y|n\n")
+            evaluated_options['overwrite'] = confirm_action(overwrite)
+            try:
+                document_created = create_document(title, path, evaluated_options['overwrite'])
+            except FileExistsError:
                 print(f"File {path} exists and will not be overwritten.")
                 sys.exit()
-
-        finally:
-            if evaluated_options['open'] and document_created:
-                open_document(path)
-                sys.exit()
+        else:
+            print(f"File {path} exists and will not be overwritten.")
+            sys.exit()
 
     except TooManyArgumentsException:
         print("Too many arguments provided, aborting program.")
         print(HELP_TEXT)
         sys.exit()
+
     except InvalidFileNameException:
         print(f"{filename} is not a valid filename.")
         print(f"Filenames have to match this regular expression {VALID_FILENAME}")
         sys.exit()
+
     except PermissionError:
         print("Permission denied.")
         sys.exit()
-        
+
+    finally:
+        if evaluated_options['open'] and document_created:
+            open_document(path)
+            sys.exit()
     
 
 
