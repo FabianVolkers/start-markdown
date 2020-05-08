@@ -4,10 +4,16 @@ import sys
 import re
 
 class TooManyArgumentsException(Exception):
-    pass
+    def __init__(self):
+        super.__init__(self)
 
 class InvalidFileNameException(Exception):
-    pass
+    def __init__(self):
+        super.__init__(self)
+
+class FileCreationError(Exception):
+    def __init__(self):
+        super.__init__(self)
 
 HELP_TEXT = """
 Markdown Document Creator
@@ -46,6 +52,7 @@ def create_document(title, path, overwrite):
         try:
             with open(path, mode="w") as file:
                 file.write(content)
+                file.close()
             return True
         except:
             print("error creating file")
@@ -56,6 +63,7 @@ def create_document(title, path, overwrite):
         try:
             with open(path, mode='x') as file:
                 file.write(content)
+                file.close()
             return True
         except FileExistsError:
             raise FileExistsError
@@ -183,6 +191,9 @@ if __name__ == "__main__":
     except InvalidFileNameException:
         print(f"{filename} is not a valid filename.")
         print(f"Filenames have to match this regular expression {VALID_FILENAME}")
+        sys.exit()
+    except PermissionError:
+        print("Permission denied.")
         sys.exit()
         
     
