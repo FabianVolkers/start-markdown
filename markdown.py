@@ -6,6 +6,9 @@ import re
 class TooManyArgumentsException(Exception):
     pass
 
+class InvalidFileNameException(Exception):
+    pass
+
 HELP_TEXT = """
 Markdown Document Creator
 
@@ -17,6 +20,9 @@ FLAGS:
 -o, --open\t Open file in VSCode after creation
 
 """
+
+VALID_FILENAME = re.compile("^[a-zA-Z0-9_\.][a-zA-Z0-9_\.-]{0,256}$")
+
 def confirm_action(response):
     if response == "y" or response == "yes":
         return True
@@ -113,6 +119,11 @@ def evaluate_filename(filename):
         title = filename.split("/")[len(filename.split("/"))-1]
         title = title[:extension_match.start()]
 
+    
+    filename_match = VALID_FILENAME.search(filename)
+    if filename_match == None:
+        raise InvalidFileNameException
+
     return filename, title
 
 def open_document(path):
@@ -168,6 +179,10 @@ if __name__ == "__main__":
     except TooManyArgumentsException:
         print("Too many arguments provided, aborting program.")
         print(HELP_TEXT)
+        sys.exit()
+    except InvalidFileNameException:
+        print(f"{filename} is not a valid filename.")
+        print(f"Filenames have to match this regular expression {VALID_FILENAME}")
         sys.exit()
         
     
