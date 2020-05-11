@@ -2,10 +2,7 @@
 import os
 import sys
 import re
-
-class TooManyArgumentsException(Exception):
-    def __init__(self):
-        super.__init__(self)
+import argparse
 
 class InvalidFileNameException(Exception):
     def __init__(self):
@@ -15,17 +12,7 @@ class FileCreationError(Exception):
     def __init__(self):
         super.__init__(self)
 
-HELP_TEXT = """
-Markdown Document Creator
 
-Usage: markdown [options] [filename]
-
-FLAGS:
--h, --help\t Display this help text
--f, --force\t Force overwrite if file exists
--o, --open\t Open file in VSCode after creation
-
-"""
 
 VALID_FILENAME = re.compile("^[a-zA-Z0-9_\.][a-zA-Z0-9_\.-]{0,256}$")
 
@@ -69,20 +56,13 @@ def create_document(title, path, overwrite):
             raise FileExistsError
 
 def read_arguments(argv):
-    if len(argv) == 1:
-        return "", ""
-    elif len(argv) == 2:
-        if argv[1][0] == "-":
-            return argv[1], ""
-        else:
-            return "", argv[1]
-    elif len(argv) == 3:
-        if argv[1][0] == "-":
-            return argv[1], argv[2]
-        else:
-            return argv[2], argv[1]
-    else:
-        raise TooManyArgumentsException
+    parser = argparse.ArgumentParser(description='Markdown Document Creator')
+    parser.add_argument('filename', help='Filename or Path of the Markdown file to be created')
+    parser.add_argument('-f', '--force', action='store_true', help='Force overwrite if file exists')
+    parser.add_argument('-o', '--open', action='store_true', help='Open file in preferred editor')
+    parser.add_argument('-e', '--editor', help='Choose an editor to open the file with')
+    return parser.parse_args(argv)
+
 
 
 def get_path(filename):
@@ -96,23 +76,7 @@ def get_path(filename):
     
     return path
 
-def evaluate_options(options):
-    evaluated_options = {
-        'overwrite': None,
-        'open': False,
-    }
-    if options == "--help" or options == "-h":
-        print(HELP_TEXT)
-        sys.exit()
-    elif options == "--force" or options == "-f":
-        evaluated_options['overwrite'] = True
-    elif options == "--open" or options == "-o":
-        evaluated_options['open'] = True
-    elif options == "-fo" or options == "-of":
-        evaluated_options['overwrite'] = True
-        evaluated_options['open'] = True
-    
-    return evaluated_options
+
 
 def evaluate_filename(filename):
     if filename == "":
@@ -134,44 +98,49 @@ def evaluate_filename(filename):
 
     return filename, title
 
-def open_document(path):
-    
-    code = os.popen("which code")
-    editor = os.popen("$EDITOR").read()
-    nano = os.popen("which nano")
-    vim = os.popen("which vim")
-
-    if not code == "code not found":
-        os.system(f"code {path}")
-    elif not editor == "":
-        os.system(f"$EDITOR {path}")
-    elif not nano == "nano not found":
-        os.system(f"nano {path}")
-    elif not vim == "vim not found":
-        os.system(f"vim {path}")
+def open_document(path, editor):
+    if not editor == None:
+        os.system(f"{editor} {path}")
     else:
-        print("no editor found. Aborting program without opening file.")
-        sys.exit()
+        code = os.popen("which code")
+        editor = os.popen("$EDITOR").read()
+        nano = os.popen("which nano")
+        vim = os.popen("which vim")
+
+        if not code == "code not found":
+            os.system(f"code {path}")
+        elif not editor == "":
+            os.system(f"$EDITOR {path}")
+        elif not nano == "nano not found":
+            os.system(f"nano {path}")
+        elif not vim == "vim not found":
+            os.system(f"vim {path}")
+        else:
+            print("no editor found. Aborting program without opening file.")
+            sys.exit()
 
 if __name__ == "__main__":
-
+    namespace = read_arguments(sys.argv[1:])
+    editor = namespace.editor
+    filename = namespace.filename
+    overwrite = namespace.force
+    open_file = namespace.open
+    
     try:
-        options, filename = read_arguments(sys.argv)
-        evaluated_options = evaluate_options(options)
+
         document_created = False
         
         filename, title = evaluate_filename(filename)
 
         path = get_path(filename)
-        document_created = create_document(title, path, evaluated_options['overwrite'])
-
+        document_created = create_document(title, path, overwrite)
 
     except FileExistsError:
-        if evaluated_options['overwrite'] == None:
-            overwrite = input(f"The file you are trying to create already exists. Do you want to overwrite the file {path}? y|n\n")
-            evaluated_options['overwrite'] = confirm_action(overwrite)
+        if overwrite == False:
+            overwrite_response = input(f"The file you are trying to create already exists. Do you want to overwrite the file {path}? y|n\n")
+            overwrite = confirm_action(overwrite_response)
             try:
-                document_created = create_document(title, path, evaluated_options['overwrite'])
+                document_created = create_document(title, path, overwrite)
             except FileExistsError:
                 print(f"File {path} exists and will not be overwritten.")
                 sys.exit()
@@ -179,10 +148,6 @@ if __name__ == "__main__":
             print(f"File {path} exists and will not be overwritten.")
             sys.exit()
 
-    except TooManyArgumentsException:
-        print("Too many arguments provided, aborting program.")
-        print(HELP_TEXT)
-        sys.exit()
 
     except InvalidFileNameException:
         print(f"{filename} is not a valid filename.")
@@ -194,9 +159,10 @@ if __name__ == "__main__":
         sys.exit()
 
     finally:
-        if evaluated_options['open'] and document_created:
-            open_document(path)
-            sys.exit()
+        if open_file and document_created:
+            open_document(path, editor)
+            sys.exit() 
+    
     
 
 
