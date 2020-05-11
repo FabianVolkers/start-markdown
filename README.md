@@ -22,15 +22,20 @@ The python script will generate a markdown documents according to this template.
 ```
 
 ## Usage
-```bash
+```
+usage: markdown.py [-h] [-f] [-o] [-e EDITOR] filename
+
 Markdown Document Creator
 
-Usage: markdown [options] [filename]
+positional arguments:
+  filename              Filename or Path of the Markdown file to be created
 
-FLAGS:
--h, --help\t Display this help text
--f, --force\t Force overwrite if file exists
--o, --open\t Open file in VSCode after creation
+optional arguments:
+  -h, --help            show this help message and exit
+  -f, --force           Force overwrite if file exists
+  -o, --open            Open file in preferred editor
+  -e EDITOR, --editor EDITOR
+                        Choose an editor to open the file with
 ```
 
 ## Installation
